@@ -1,3 +1,3 @@
 export type TicTocToeMoves = 'X' | 'O' | '';
 
-export type Board  = number | TicTocToeMoves[][];
+export type Board  = TicTocToeMoves[][];
