@@ -1,7 +1,7 @@
 import promptAsync from 'prompt-sync';
 import { Display } from '../display/index.js'
 import { Board } from "../../domain/Board.js";
-import { INITIAL_BOARD } from "./initialBoard.config.js";
+import {getADeepCopyOfTheInitialBoard, INITIAL_BOARD} from "./initialBoard.config.js";
 import { logger } from "../../adapters/Logger/index.js";
 
 const prompt = promptAsync({
@@ -10,32 +10,43 @@ const prompt = promptAsync({
 
 export class Game {
     private display: Display;
-    private currentBoard: Board;
+    currentBoard: Board;
     private currentPlayer: number;
     private winner: number;
 
     constructor () {
         this.display = new Display();
-        this.currentBoard = INITIAL_BOARD;
+        this.currentBoard = getADeepCopyOfTheInitialBoard();
         this.currentPlayer = 1;
     }
 
-    private makeAMove (player: number) {
+    private makeAMove (player: number, message?: string) {
         const isAValidMove = (inputedPosition: unknown) => (typeof inputedPosition === "number" && inputedPosition < 4 && inputedPosition > 0);
         const isThePositionTaken = (x, y) => this.currentBoard[x - 1][y - 1] !== '';
 
-        const moveXInput = parseInt(prompt(`PLAYER ${player}, please inform the NUMBER of the row: `));
-        const moveYInput = parseInt(prompt('Now, please inform column NUMBER: '));
+        console.clear();
+        this.display.show(this.currentBoard);
+
+        if (message) {
+            logger.log(message);
+        }
+
+        const moveXInput = parseInt(prompt(`PLAYER ${player}, please enter the NUMBER of the row: `));
+
+        console.clear();
+        this.display.show(this.currentBoard);
+        const moveYInput = parseInt(prompt(`PLAYER ${player}, enter the column NUMBER: `));
 
         if (!isAValidMove(moveXInput) || !isAValidMove(moveYInput) ) {
-            logger.log("Invalid move, please retake it.")
-            this.makeAMove(player);
+            this.makeAMove(player, 'Invalid move, please retake it.');
             return;
         }
 
         if (isThePositionTaken(moveXInput, moveYInput)) {
-            logger.log("Position is taken, please choose another one.");
-            this.makeAMove(player);
+            this.display.addNewLines(5);
+            this.display.show(this.currentBoard);
+            this.display.addNewLines(2);
+            this.makeAMove(player, 'Position is taken, please choose another one.');
             return;
         }
 
@@ -62,13 +73,15 @@ export class Game {
         this.changePlayer();
 
         if (this.getState() !== 'ended') {
+            console.clear();
             this.loop();
         }
     }
 
     reset () {
         this.currentPlayer = 1;
-        this.currentBoard = INITIAL_BOARD;
+        this.currentBoard = undefined;
+        this.currentBoard = getADeepCopyOfTheInitialBoard();
     }
 
     getState (): string {
@@ -86,6 +99,16 @@ export class Game {
             && this.currentBoard[row][1] === getPlayerSymbol(player)
             && this.currentBoard[row][2] === getPlayerSymbol(player);
 
+        const allInTheASCDiagonal = (player: number) =>
+            this.currentBoard[0][0] === getPlayerSymbol(player)
+            && this.currentBoard[1][1] === getPlayerSymbol(player)
+            && this.currentBoard[2][2] === getPlayerSymbol(player);
+
+        const allInTheDescDiagonal = (player: number) =>
+            this.currentBoard[0][2] === getPlayerSymbol(player)
+            && this.currentBoard[1][1] === getPlayerSymbol(player)
+            && this.currentBoard[2][0] === getPlayerSymbol(player);
+
         for (let playerBeingChecked = 1; playerBeingChecked <= 2; playerBeingChecked++) {
             if (
                 allInTheSameCollumn(playerBeingChecked, 0) ||
@@ -93,15 +116,42 @@ export class Game {
                 allInTheSameCollumn(playerBeingChecked, 2) ||
                 allInTheSameRow(playerBeingChecked, 0) ||
                 allInTheSameRow(playerBeingChecked, 1) ||
-                allInTheSameRow(playerBeingChecked, 2)
+                allInTheSameRow(playerBeingChecked, 2) ||
+                allInTheASCDiagonal(playerBeingChecked) ||
+                allInTheDescDiagonal(playerBeingChecked)
             ) {
                 this.winner = playerBeingChecked;
                 return 'ended';
             }
         }
+
+        let thereIsStillAnyOneEmpty = () =>
+            this.currentBoard.map(row =>  row[0] === ''  || row[1] === ''  || row[2] === '');
+
+        const isADraw = !thereIsStillAnyOneEmpty().includes(true);
+
+        if (isADraw) {
+            this.endAsDraw();
+        }
+
+    }
+
+    restart () {
+        const repeat = prompt(`Would you like to play it again? Type Y if you are in: `);
+
+        if (repeat === 'yes' || repeat === 'Yes' || repeat === 'y' || repeat === 'Y') {
+            this.reset();
+            this.start();
+        }
     }
 
     end () {
         logger.log(`FINISH! Player ${this.winner} WON! Congratulations...`);
+        this.restart();
+    }
+
+    endAsDraw () {
+        logger.log(`It's a DRAW!`);
+        this.restart();
     }
 }
