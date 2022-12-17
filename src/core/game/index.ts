@@ -8,6 +8,10 @@ const prompt = promptAsync({
     sigint: true
 });
 
+const FIRST_PLAYER = 1;
+const SECOND_PLAYER = 2;
+const ARRAY_DIFF_STARTING_FROM_ZERO = 1;
+
 export class Game {
     private display: Display;
     currentBoard: Board;
@@ -17,14 +21,14 @@ export class Game {
     constructor () {
         this.display = new Display();
         this.currentBoard = getADeepCopyOfTheInitialBoard();
-        this.currentPlayer = 1;
+        this.currentPlayer = FIRST_PLAYER;
     }
 
     private makeAMove (player: number, message?: string) {
         const isAValidMove = (inputedPosition: unknown) => (typeof inputedPosition === "number" && inputedPosition < 4 && inputedPosition > 0);
-        const isThePositionTaken = (x, y) => this.currentBoard[x - 1][y - 1] !== '';
+        const isThePositionTaken = (x, y) => this.currentBoard[x - ARRAY_DIFF_STARTING_FROM_ZERO][y - ARRAY_DIFF_STARTING_FROM_ZERO] !== '';
 
-        console.clear();
+        this.display.clear();
         this.display.show(this.currentBoard);
 
         if (message) {
@@ -33,7 +37,7 @@ export class Game {
 
         const moveXInput = parseInt(prompt(`PLAYER ${player}, please enter the NUMBER of the row: `));
 
-        console.clear();
+        this.display.clear();
         this.display.show(this.currentBoard);
         const moveYInput = parseInt(prompt(`PLAYER ${player}, enter the column NUMBER: `));
 
@@ -50,19 +54,18 @@ export class Game {
             return;
         }
 
-        this.currentBoard[moveXInput - 1][moveYInput - 1] = player === 1 ? 'X' : 'O';
+        this.currentBoard[moveXInput - ARRAY_DIFF_STARTING_FROM_ZERO][moveYInput - ARRAY_DIFF_STARTING_FROM_ZERO] = this.getPlayerSymbol(player);
     }
 
     start () {
         this.reset();
-        this.display.salute();
         this.display.show(this.currentBoard);
         this.loop();
         this.end();
     }
 
     changePlayer () {
-        this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+        this.currentPlayer = this.currentPlayer === FIRST_PLAYER ? SECOND_PLAYER : FIRST_PLAYER;
     }
 
     loop () {
@@ -73,43 +76,46 @@ export class Game {
         this.changePlayer();
 
         if (this.getState() !== 'ended') {
-            console.clear();
+            this.display.clear();
             this.loop();
         }
     }
 
     reset () {
-        this.currentPlayer = 1;
-        this.currentBoard = undefined;
+        this.currentPlayer = FIRST_PLAYER;
         this.currentBoard = getADeepCopyOfTheInitialBoard();
     }
 
-    getState (): string {
-        const getPlayerSymbol = (player) => {
-            return player === 1 ? 'X' : 'O';
-        }
+    getPlayerSymbol (player) {
+        return player === FIRST_PLAYER ? 'X' : 'O';
+    }
 
+    getState (): string {
         const allInTheSameCollumn = (player: number, collumn: number) =>
-            this.currentBoard[0][collumn] === getPlayerSymbol(player)
-            && this.currentBoard[1][collumn] === getPlayerSymbol(player)
-            && this.currentBoard[2][collumn] === getPlayerSymbol(player);
+            this.currentBoard[0][collumn] === this.getPlayerSymbol(player)
+            && this.currentBoard[1][collumn] === this.getPlayerSymbol(player)
+            && this.currentBoard[2][collumn] === this.getPlayerSymbol(player);
 
         const allInTheSameRow = (player: number, row: number) =>
-            this.currentBoard[row][0] === getPlayerSymbol(player)
-            && this.currentBoard[row][1] === getPlayerSymbol(player)
-            && this.currentBoard[row][2] === getPlayerSymbol(player);
+            this.currentBoard[row][0] === this.getPlayerSymbol(player)
+            && this.currentBoard[row][1] === this.getPlayerSymbol(player)
+            && this.currentBoard[row][2] === this.getPlayerSymbol(player);
 
         const allInTheASCDiagonal = (player: number) =>
-            this.currentBoard[0][0] === getPlayerSymbol(player)
-            && this.currentBoard[1][1] === getPlayerSymbol(player)
-            && this.currentBoard[2][2] === getPlayerSymbol(player);
+            this.currentBoard[0][0] === this.getPlayerSymbol(player)
+            && this.currentBoard[1][1] === this.getPlayerSymbol(player)
+            && this.currentBoard[2][2] === this.getPlayerSymbol(player);
 
         const allInTheDescDiagonal = (player: number) =>
-            this.currentBoard[0][2] === getPlayerSymbol(player)
-            && this.currentBoard[1][1] === getPlayerSymbol(player)
-            && this.currentBoard[2][0] === getPlayerSymbol(player);
+            this.currentBoard[0][2] === this.getPlayerSymbol(player)
+            && this.currentBoard[1][1] === this.getPlayerSymbol(player)
+            && this.currentBoard[2][0] === this.getPlayerSymbol(player);
 
-        for (let playerBeingChecked = 1; playerBeingChecked <= 2; playerBeingChecked++) {
+        for (
+            let playerBeingChecked = FIRST_PLAYER;
+            playerBeingChecked <= SECOND_PLAYER;
+            playerBeingChecked++
+        ) {
             if (
                 allInTheSameCollumn(playerBeingChecked, 0) ||
                 allInTheSameCollumn(playerBeingChecked, 1) ||
@@ -136,22 +142,21 @@ export class Game {
 
     }
 
-    restart () {
+    checkRestart () {
         const repeat = prompt(`Would you like to play it again? Type Y if you are in: `);
 
         if (repeat === 'yes' || repeat === 'Yes' || repeat === 'y' || repeat === 'Y') {
-            this.reset();
             this.start();
         }
     }
 
     end () {
         logger.log(`FINISH! Player ${this.winner} WON! Congratulations...`);
-        this.restart();
+        this.checkRestart();
     }
 
     endAsDraw () {
         logger.log(`It's a DRAW!`);
-        this.restart();
+        this.checkRestart();
     }
 }
