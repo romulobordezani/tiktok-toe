@@ -1,8 +1,5 @@
 import { logger } from '../../adapters/Logger/index.js';
 export class Display {
-    salute() {
-        logger.log('Welcome to the TIK TOK TOE Game!');
-    }
     show(currentBoard) {
         logger.log(`┌───────┬────────┬───────┐`);
         currentBoard.forEach(row => {
@@ -10,8 +7,8 @@ export class Display {
             logger.log(`└───────┴────────┴───────┘`);
         });
     }
-    addLineSplitter() {
-        logger.log('\r\n\r\n\  ------------------------  \r\n\r\n');
+    clear() {
+        logger.clear();
     }
     addNewLines(times = 1) {
         logger.log('\r\n'.repeat(times));
